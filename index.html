@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Homework 3 - MyWorld Data</title>
+    <!-- ADD Libraries-->
+    <script src="libs/d3/d3.min.js" charset="utf-8"></script>
+    <script src="http://d3js.org/queue.v1.min.js"></script>
+    <script src="libs/jquery/jquery-2.1.1.min.js" charset="utf-8"></script>
+    <script src="libs/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+    <!--Stylesheets-->
+    <link rel="stylesheet" type="text/css" href="libs/bootstrap/css/bootstrap.min.css">
+    <!-- Get some nice font-->
+    <link href='http://fonts.googleapis.com/css?family=PT+Sans:400,700' rel='stylesheet' type='text/css'>
+    <!-- add own vis classes-->
+    <script src = "js/priovis.js"></script>
+    <script src = "js/agevis.js"></script>
+    <script src = "js/countvis.js"></script>
+    <!-- add own stylesheet-->
+    <link rel="stylesheet" type="text/css" href="css/myStyle.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Homework 3 - MyWorld 2015 Data Visualization</h1>
+        <div class="row">
+            <div class="col-md-8 col-sm-12">
+               <p> The following visualization shows you the votes for MyWorld 2015. You can select a time range to see changes in the distribution of votes and distribution of age of the voters. You can also select a comparison range by clicking and dragging on the "Comparison Selector".</p>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-4">
+                <button class="btn btn-sm btn-primary" id="fitInBtn"> <span class="glyphicon glyphicon-resize-horizontal"></span> Reset Zoom </button>
+                <button class="btn btn-sm btn-primary" id="clearBtn"> <span class="glyphicon glyphicon-remove"></span> Clear Brushes </button>            
+                <button class="btn btn-sm btn-primary" id="showBtn"> <span class="glyphicon glyphicon-remove"></span> <span id="txt">Hide</span> Averages </button>            
+            </div>
+            <div class="col-md-8">
+                <b>Current Selection:</b> <span id="brushInfo"></span><br>
+                <b>Comparison:</b> <span id="compInfo"></span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-9" id="countVis">
+                <span class="header">&nbsp Number of Votes - scroll to zoom, brush to select range: &nbsp</span><br>
+            </div>
+            <div class="col-md-3" id="ageVis">
+                <span class="header">&nbsp Age Distribution: &nbsp</span><br>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-9" id="prioVis">
+                <span class="header">&nbsp Distribution of Priorities: &nbsp</span><br>
+            </div>
+            <div class="col-md-3" id="key">
+                <span class="header">&nbsp Key: &nbsp</span><br>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(function(){ 
+            // Global Variables
+            var allData = [];
+            var metaData = {};
+            var dateFormatter = d3.time.format("%Y-%m-%d");
+
+            var initVis = function(){
+                // Initiate Visualisations
+                var MyEventHandler = new Object();
+                count_vis = new CountVis(d3.select("#countVis"), allData, metaData, MyEventHandler);
+                age_vis = new AgeVis(d3.select("#ageVis"), allData, metaData);
+                prio_vis = new PrioVis(d3.select("#prioVis"), allData, metaData);
+                // Event Handlers
+                $(MyEventHandler).bind("selectionChanged", function(event, type){
+                    age_vis.onSelectionChange(type["start"],type["end"]);
+                    prio_vis.onSelectionChange(type["start"],type["end"]);
+                });
+                $(MyEventHandler).bind("compChanged", function(event, type){
+                    age_vis.onCompChange(type["start"],type["end"]);
+                    prio_vis.onCompChange(type["start"],type["end"]);
+                });
+                //Draw Key
+                this.svg = d3.select("#key")
+                    .append("svg")
+                    .attr("width", 200)
+                    .attr("height", 50);
+                this.svg
+                    .append("line")
+                    .attr("class", "barAve")
+                    .attr("x1", 0)
+                    .attr("y1", 10)
+                    .attr("x2", 40)
+                    .attr("y2", 10)
+                    .attr("stroke-dasharray","10,10");
+                this.svg
+                    .append("line")
+                    .attr("class", "compAve")
+                    .attr("x1", 0)
+                    .attr("y1", 28)
+                    .attr("x2", 40)
+                    .attr("y2", 28)
+                    .attr("stroke-dasharray","10,10");
+                this.svg
+                    .append("text")
+                    .attr("x", 50)
+                    .attr("y", 14)
+                    .text("Average");
+                this.svg
+                    .append("text")
+                    .attr("x", 50)
+                    .attr("y", 32)
+                    .text("Comparison Ave.");
+            };
+
+            var dataLoaded = function (error, _allData, _metaData) {
+                if (!error) {
+                    allData = _allData.map(function (d) {
+                        var res = {
+                            time: dateFormatter.parse(d.day),
+                            count: parseInt(d["count(*)"])
+                        };
+                        res.prios = []
+                        for (i = 0; i < 16; i++) { 
+                            res.prios.push(d["sum(p" + i +")"]);
+                        };
+                        res.ages = d3.range(101).map(function(){return 0;})
+                        d.age.forEach(function(a){
+                            if(a.age < 100) {
+                                res.ages[a.age] = a["count(*)"]; 
+                            } else {
+                                //Add ages 100 and above to 100 bucket.
+                                res.ages[100] += a["count(*)"]; 
+                            };                                 
+                        });
+                        return res;
+                    });
+                    metaData = _metaData;
+                    initVis();
+                };
+            };
+
+            var startHere = function(){
+                //Load Data
+                queue()
+                    .defer(d3.json, 'data/perDayData.json')
+                    .defer(d3.json, 'data/MYWorld_fields.json')
+                    .await(function(error, data, meta) {
+                        dataLoaded(error, data, meta);
+                    });
+                //Buttons    
+                d3.select("#fitInBtn").on("click", function() {
+                    count_vis.resetZoom();
+                });
+                d3.select("#clearBtn").on("click", function() {
+                    count_vis.clearBrushes();
+                    age_vis.clearComp();
+                    prio_vis.clearComp();
+                });
+                d3.select("#showBtn").on("click", function() {
+                    var text = d3.select("#txt");
+                    if(text.html() == "Hide"){
+                        text.html("Show");
+                        d3.select("#showBtn")
+                            .select("span")
+                            .classed("glyphicon-ok", true)
+                            .classed("glyphicon-remove", false); 
+                        d3.selectAll(".averageLine")
+                            .classed("averageLine-hide", true);    
+                    } else {
+                        text.html("Hide");
+                        d3.select("#showBtn")
+                            .select("span")
+                            .classed("glyphicon-ok", false)
+                            .classed("glyphicon-remove", true); 
+                        d3.selectAll(".averageLine")
+                            .classed("averageLine-hide", false);     
+                    };  
+                });
+            };
+            startHere();
+        });
+    </script>
+</body>
+</html>

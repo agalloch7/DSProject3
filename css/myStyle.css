@@ -1,0 +1,80 @@
+body{
+    font-family: 'PT Sans', sans-serif;
+}
+
+.header {
+    font-weight: bold;
+    background-color: lightgray;
+}
+
+.axis text {
+    font: 10px sans-serif;
+}
+
+.axis line,
+.axis path {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+
+.boundingBox{
+    cursor: pointer;
+    fill: grey;
+    fill-opacity: .3;
+    pointer-events: all;
+}
+
+.brush{
+    fill: darkgrey;
+    fill-opacity: .5;
+    pointer-events: none;
+}
+
+.bar{
+    fill-opacity: 1;
+    stroke-width: 1;
+}
+
+.barAve{
+    stroke: cyan;
+    stroke-width: 2;
+}
+
+.ageAve{
+    stroke: cyan;
+    stroke-width: 2;
+}
+
+.compBrush{
+    fill: deeppink;
+    pointer-events: none;
+}
+
+.compRect{
+    fill: deeppink;
+    fill-opacity: .3;
+    pointer-events: none;
+}
+
+.compLine{
+    stroke: deeppink;
+    fill: none;
+    stroke-width: 2;
+}
+
+.compAve{
+    stroke: deeppink;
+    stroke-width: 2;
+}
+
+.compBar{
+    stroke: deeppink;
+    fill: white;
+    fill-opacity: .5;
+    stroke-width: 2;
+}
+
+.averageLine-hide {
+    stroke:none;
+}
